@@ -1,13 +1,10 @@
 import random
 from SudokuSolver import SudokuSolver
 
-
 class SudokuGame:
     def __init__(self, grid=None):
-        if grid is None:
-            self.grid = [[0]*9 for _ in range(9)]
-        else:
-            self.grid = grid
+        self.grid = [[0] * 9 for _ in range(9)]
+        self.fill_values()
 
     def print_board(self):
         for row in self.grid:
@@ -24,24 +21,45 @@ class SudokuGame:
         return True
 
     def fill_values(self):
-        for i in range(81):
-            row, col = divmod(i, 9)
+        def backtrack(position=0):
+            if position == 81:
+                return True
+            row, col = divmod(position, 9)
             if self.grid[row][col] == 0:
-                random.shuffle(num := list(range(1, 10)))
-                for n in num:
-                    if self.is_safe(row, col, n):
-                        self.grid[row][col] = n
-                        if self.fill_values():
+                nums = random.sample(range(1, 10), 9)
+                for num in nums:
+                    if self.is_safe(row, col, num):
+                        self.grid[row][col] = num
+                        if backtrack(position + 1):
                             return True
                         self.grid[row][col] = 0
                 return False
-        return True
-    
-    def generate_puzzle(self, clues):
-        self.fill_values()
-        empty_spots = 81 - clues
-        while empty_spots > 0:
-            row, col = random.randint(0, 8), random.randint(0, 8)
-            if self.grid[row][col] != 0:
-                self.grid[row][col] = 0
-                empty_spots -= 1
+            return backtrack(position + 1)
+
+        if not backtrack():
+            print("Failed to fill the board. Retrying...")
+            self.grid = [[0] * 9 for _ in range(9)]
+            self.fill_values()
+
+        
+    def generate_puzzle(self):
+        # Map each number to its positions on a fully solved board
+        number_positions = {i: [] for i in range(1, 10)}
+        for row in range(9):
+            for col in range(9):
+                num = self.grid[row][col]
+                number_positions[num].append((row, col))
+
+        # Select exactly one position for each number
+        chosen_positions = set()
+        for num in range(1, 10):
+            valid_positions = [pos for pos in number_positions[num] if pos not in chosen_positions]
+            if valid_positions:
+                chosen_position = random.choice(valid_positions)
+                chosen_positions.add(chosen_position)
+
+        # Clear all cells except the chosen positions
+        for row in range(9):
+            for col in range(9):
+                if (row, col) not in chosen_positions:
+                    self.grid[row][col] = 0
