@@ -9,7 +9,7 @@ class SudokuSolver:
         os.system('cls' if os.name == 'nt' else 'clear')
         for row in self.game.grid:
             print(" ".join(str(num) if num != 0 else '.' for num in row))
-        time.sleep(0.05)
+        time.sleep(0.00001)
 
     def find_empty_location(self):
         for i in range(9):
