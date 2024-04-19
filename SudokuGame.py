@@ -1,61 +1,55 @@
 import random
 import numpy as np
-from tensorflow import keras
 from keras.models import load_model
 
 class SudokuGame:
     def __init__(self, grid=None, use_model=False):
-        self.grid = [[0] * 9 for _ in range(9)] if grid is None else grid
+        self.grid = np.zeros((9, 9), dtype=int) if grid is None else np.array(grid, dtype=int)
         if use_model:
             self.model = load_model('sudoku_model.h5')
         else:
             self.model = None
-            self.fill_values()  # Call fill_values() to randomize the board at initialization
+            self.solve()
 
     def print_board(self):
         for row in self.grid:
             print(" ".join(str(num) if num != 0 else '.' for num in row))
-    
+
     def solve_with_model(self):
         if not self.model:
             print("Model not loaded")
             return False
-        puzzle = np.array([cell for row in self.grid for cell in row]).reshape((1, 9, 9, 1))
+        puzzle = self.grid.reshape((1, 9, 9, 1))
         solution = self.model.predict(puzzle).argmax(axis=-1).reshape((9, 9)) + 1
-        self.grid = solution.tolist()
+        self.grid = solution
         return True
 
-    def fill_values(self):
-        # Randomize the first row
-        self.grid[0] = random.sample(range(1, 10), 9)
-        # Attempt to solve it from the second row onwards
-        if not self.backtrack(9):
+    def solve(self):
+        if not self.try_to_solve(0):
             print("Failed to generate a valid board")
 
-    def backtrack(self, position):
+    def try_to_solve(self, position):
         if position == 81:
-            return True  # Sudoku successfully filled
+            return True
         row, col = divmod(position, 9)
         if self.grid[row][col] == 0:
-            possible_numbers = list(range(1, 10))
-            random.shuffle(possible_numbers)  # Shuffle numbers to ensure randomness
-            for num in possible_numbers:
+            for num in np.random.permutation(range(1, 10)):
                 if self.is_safe(row, col, num):
                     self.grid[row][col] = num
-                    if self.backtrack(position + 1):
+                    if self.try_to_solve(position + 1):
                         return True
                     self.grid[row][col] = 0
         else:
-            return self.backtrack(position + 1)
+            return self.try_to_solve(position + 1)
         return False
 
     def is_safe(self, row, col, num):
-        # Check row, column, and 3x3 box
         box_row, box_col = (row // 3) * 3, (col // 3) * 3
-        if any(self.grid[row][x] == num for x in range(9)) or any(self.grid[x][col] == num for x in range(9)) or any(self.grid[box_row + x // 3][box_col + x % 3] == num for x in range(9)):
+        if num in self.grid[row, :] or num in self.grid[:, col] or num in self.grid[box_row:box_row+3, box_col:box_col+3]:
             return False
         return True
 
-    def generate_puzzle(self):
-        self.fill_values()  # Ensure the board is initially filled with a valid solution
-        # Implement logic to remove numbers to form a puzzle
+    def generate_puzzle(self, clues=25):
+        self.solve()  # Ensure the board is solved first
+        empty_cells = np.random.choice(81, 81-clues, replace=False)
+        np.put(self.grid, empty_cells, 0)

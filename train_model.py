@@ -24,7 +24,10 @@ def train_model():
     solutions = np.load('solutions.npy').reshape(-1, 81)  # Ensure solutions are integers 1-9 for each cell
 
     model = create_model()
-    model.fit(puzzles, to_categorical(solutions - 1, num_classes=9), epochs=10, validation_split=0.1)
+    model.fit(puzzles, to_categorical(solutions - 1, num_classes=9), epochs=20, validation_split=0.1)
+
+    model.save('sudoku_model.h5')
+    print("Model saved as sudoku_model.h5")
 
 if __name__ == "__main__":
     train_model()
